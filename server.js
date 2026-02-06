@@ -1,27 +1,48 @@
-const express = require('express')
-const mongoose = require('mongoose')
-const dotenv = require('dotenv')
-const cors = require('cors')
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const cors = require('cors');
+const session = require('express-session');
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
+const app = express();
 
-app.use(cors())
-app.use(express.json())
-app.use(express.static('public'))
+/* ===== Middleware ===== */
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 
-const noteRoutes = require('./routes/noteRoutes')
-app.use('/api/notes', noteRoutes)
+app.use(express.json());
+app.use(express.static('public'));
 
+/* ===== Sessions ===== */
+app.use(session({
+  secret: 'notes-app-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: false // true только если HTTPS (production)
+  }
+}));
 
-// MongoDB
+/* ===== Routes ===== */
+const noteRoutes = require('./routes/noteRoutes');
+const authRoutes = require('./routes/authRoutes');
+
+app.use('/api/notes', noteRoutes);
+app.use('/api/auth', authRoutes);
+
+/* ===== MongoDB ===== */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err))
+  .catch(err => console.error('MongoDB error:', err));
 
-const PORT = process.env.PORT || 3000
+/* ===== Server ===== */
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
+  console.log(`Server running on port ${PORT}`);
+});

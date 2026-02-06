@@ -1,50 +1,73 @@
-const express = require('express')
-const router = express.Router()
-const Note = require('../models/Note')
+const express = require('express');
+const router = express.Router();
+const Note = require('../models/Note');
+const auth = require('../middleware/auth');
 
-// READ (all)
+// READ (all) - можно без логина
 router.get('/', async (req, res) => {
   try {
-    const notes = await Note.find().sort({ updatedAt: -1 })
-    res.json(notes)
+    const notes = await Note.find().sort({ updatedAt: -1 });
+    return res.status(200).json(notes);
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    return res.status(500).json({ error: 'Server error' });
   }
-})
+});
 
-// CREATE
-router.post('/', async (req, res) => {
+// CREATE - только с логином
+router.post('/', auth, async (req, res) => {
   try {
-    const note = new Note(req.body)
-    const saved = await note.save()
-    res.status(201).json(saved)
-  } catch (err) {
-    res.status(400).json({ error: err.message })
-  }
-})
+    const { title, content } = req.body;
 
-// UPDATE
-router.put('/:id', async (req, res) => {
+    // простая валидация (подстрой под поля твоей модели Note)
+    if (!title || !content) {
+      return res.status(400).json({ error: 'Validation error' });
+    }
+
+    const note = new Note({
+      ...req.body,
+      // если ты добавишь поле user в Note, можно включить это:
+      // user: req.session.userId
+    });
+
+    const saved = await note.save();
+    return res.status(201).json(saved);
+  } catch (err) {
+    return res.status(400).json({ error: 'Bad request' });
+  }
+});
+
+// UPDATE - только с логином
+router.put('/:id', auth, async (req, res) => {
   try {
     const updated = await Note.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    )
-    res.json(updated)
-  } catch (err) {
-    res.status(400).json({ error: err.message })
-  }
-})
+    );
 
-// DELETE
-router.delete('/:id', async (req, res) => {
+    if (!updated) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    return res.status(200).json(updated);
+  } catch (err) {
+    return res.status(400).json({ error: 'Bad request' });
+  }
+});
+
+// DELETE - только с логином
+router.delete('/:id', auth, async (req, res) => {
   try {
-    await Note.findByIdAndDelete(req.params.id)
-    res.json({ message: 'Note deleted' })
-  } catch (err) {
-    res.status(400).json({ error: err.message })
-  }
-})
+    const deleted = await Note.findByIdAndDelete(req.params.id);
 
-module.exports = router
+    if (!deleted) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    return res.status(200).json({ message: 'Note deleted' });
+  } catch (err) {
+    return res.status(400).json({ error: 'Bad request' });
+  }
+});
+
+module.exports = router;

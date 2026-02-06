@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+</head>
+
+<body class="container mt-4" style="max-width: 520px;">
+
+  <nav class="navbar bg-light rounded mb-4 px-3">
+    <a class="navbar-brand fw-bold" href="/">Notes App</a>
+    <div class="ms-auto">
+      <a class="btn btn-outline-secondary" href="/login.html">Login</a>
+    </div>
+  </nav>
+
+  <h2 class="mb-3">Register</h2>
+
+  <div id="error" class="alert alert-danger d-none"></div>
+  <div id="success" class="alert alert-success d-none">
+    Registration successful. You can now log in.
+  </div>
+
+  <form id="registerForm" class="card card-body">
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input id="username" class="form-control" required />
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input id="password" type="password" class="form-control" required />
+    </div>
+
+    <button class="btn btn-success" type="submit">Register</button>
+  </form>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const errorDiv = document.getElementById('error');
+    const successDiv = document.getElementById('success');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      errorDiv.classList.add('d-none');
+      successDiv.classList.add('d-none');
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
+
+      if (res.status === 201) {
+        successDiv.classList.remove('d-none');
+        form.reset();
+      } else if (res.status === 409) {
+        errorDiv.textContent = 'User already exists';
+        errorDiv.classList.remove('d-none');
+      } else {
+        errorDiv.textContent = 'Registration failed';
+        errorDiv.classList.remove('d-none');
+      }
+    });
+  </script>
+</body>
+</html>
